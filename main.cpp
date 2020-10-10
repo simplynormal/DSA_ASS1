@@ -41,15 +41,19 @@ protected:
     Node **fragmentPointers;
     int fragmentMaxSize;
     int count;
+    int fragmentCount;
+
+    void fragmentRebuild(bool add_rem, const int &index);
+    void fragmentRebuild();
 
 public:
     FragmentLinkedList(int fragmentMaxSize = 5)
     {
         this->count = 0;
+        this->fragmentCount = 1;
         this->fragmentMaxSize = fragmentMaxSize;
-        this->fragmentPointers = new Node *[2];
+        this->fragmentPointers = new Node *[1];
         this->fragmentPointers[0] = NULL;
-        this->fragmentPointers[1] = NULL;
     }
     virtual ~FragmentLinkedList();
     virtual void add(const T& element);
@@ -66,6 +70,9 @@ public:
     virtual string toString();
     Iterator begin(int index = 0);
     Iterator end(int index = -1);
+
+    //Custom
+    string fragmentCheck();
 
 public:
     class Node
@@ -114,15 +121,17 @@ public:
     };
 };
 
-//Destructor (Done)
+//Destructor (Done)---------------------------------------------------------
 template<class T>
 FragmentLinkedList<T>::~FragmentLinkedList()
 {
     if (empty()) return;
 
-    this->fragmentMaxSize = 0;
     this->count = 0;
+    this->fragmentCount = 1;
+
     Node *p = this->fragmentPointers[0], *tmp;
+
     while(p)
     {
         tmp = p;
@@ -131,46 +140,98 @@ FragmentLinkedList<T>::~FragmentLinkedList()
     }
 }
 
-//Clear (Done)
+//Clear (Done)---------------------------------------------------------
 template <class T>
 void FragmentLinkedList<T>::clear()
 {
     this->~FragmentLinkedList();
 }
 
-//Size (Done)
+//Size (Done)---------------------------------------------------------
 template <class T>
 int FragmentLinkedList<T>::size()
 {
     return count;
 }
 
-//Get (Done)
+//Get (Done)---------------------------------------------------------
 template<class T>
 T& FragmentLinkedList<T>::get(int index)
 {
+    if (index >= count || index < 0 || empty()) throw out_of_range("This index is out of range!");
+
     Node *p = this->fragmentPointers[0];
     int i = 0;
+
     while (i < index)
     {
         p = p->next;
         i++;
     }
+
     return p->data;
 }
 
-//Empty check (Done)
+//Empty check (Done)---------------------------------------------------------
 template<class T>
 bool FragmentLinkedList<T>::empty()
 {
     return (!count);
 }
 
-//Remove at (Done)
+//Set (Done)---------------------------------------------------------
+template<class T>
+void FragmentLinkedList<T>::set(int index, const T& element)
+{
+    if (index >= count || index < 0 || empty()) throw out_of_range("This index is out of range!");
+
+    Node *p = this->fragmentPointers[0];
+    int i = 0;
+
+    while(i < index) {p = p->next; i++;}
+    p->data = element;
+}
+
+//Index of an element (Done)---------------------------------------------------------
+template <class T>
+int FragmentLinkedList<T>::indexOf(const T& item)
+{
+    Node *p = this->fragmentPointers[0];
+    int index = 0;
+
+    while(index < count)
+        if (p->data != item)
+        {
+            p = p->next;
+            index++;
+        } else break;
+
+    if (index < count) return index; else return -1;
+}
+
+//Contain (Done)---------------------------------------------------------
+template <class T>
+bool FragmentLinkedList<T>::contains(const T& item)
+{
+    Node *p = this->fragmentPointers[0];
+    int index = 0;
+
+    while(index < count)
+        if (p->data != item)
+        {
+            p = p->next;
+            index++;
+        } else break;
+
+    if (index < count) return true; else return false;
+}
+
+//Remove at (Done)---------------------------------------------------------
 template <class T>
 T FragmentLinkedList<T>::removeAt(int index)
 {
     Node *p = this->fragmentPointers[0];
+
     if (index >= count || index < 0 || empty()) throw out_of_range("This index is out of range!");
 
     if (index == 0)
@@ -178,12 +239,13 @@ T FragmentLinkedList<T>::removeAt(int index)
         this->fragmentPointers[0] = p->next;
         this->count--;
 
-        static T t = p->data;
+        T t = p->data;
         delete p;
         return t;
     }
 
     int i = 0;
+
     while(i < index) {p = p->next; i++;}
     if (i == count - 1) p->prev->next = nullptr;
     else
@@ -193,23 +255,27 @@ T FragmentLinkedList<T>::removeAt(int index)
     }
     this->count--;
 
-    static T t = p->data;
+    fragmentRebuild(0, index);
+
+    T t = p->data;
     delete p;
     return t;
 }
 
-//Remove item
+//Remove item (Done)---------------------------------------------------------
 template<class T>
 bool FragmentLinkedList<T>::removeItem(const T& item)
 {
     Node *p = this->fragmentPointers[0];
     int index = 0;
+
     while(index < count)
         if (p->data != item)
         {
             p = p->next;
             index++;
         } else break;
+
     if (index < count)
     {
         if (index == 0)
@@ -228,48 +294,13 @@ bool FragmentLinkedList<T>::removeItem(const T& item)
         }
 
         this->count--;
+        fragmentRebuild(0, index);
+
         return true;
     } else return false;
 }
 
-//Set
-template<class T>
-void FragmentLinkedList<T>::set(int index, const T& element)
-{
-
-}
-
-//Index of an element
-template <class T>
-int FragmentLinkedList<T>::indexOf(const T& item)
-{
-    Node *p = this->fragmentPointers[0];
-    int index = 0;
-    while(index < count)
-        if (p->data != item)
-        {
-            p = p->next;
-            index++;
-        } else break;
-    if (index < count) return index; else return -1;
-}
-
-//Contain
-template <class T>
-bool FragmentLinkedList<T>::contains(const T& item)
-{
-    Node *p = this->fragmentPointers[0];
-    int index = 0;
-    while(index < count)
-        if (p->data != item)
-        {
-            p = p->next;
-            index++;
-        } else break;
-    if (index < count) return true; else return false;
-}
-
-//Add element to the last position (Done)
+//Add element to the last position (Done)---------------------------------------------------------
 template<class T>
 void FragmentLinkedList<T>::add(const T& element)
 {
@@ -282,13 +313,17 @@ void FragmentLinkedList<T>::add(const T& element)
     } else
     {
         Node *p = this->fragmentPointers[0];
+
         while (p->next) p = p->next;
         p->next = new Node(element, nullptr, p);
+
         this->count++;
     }
+
+    fragmentRebuild(1, count - 1);
 }
 
-//Add element to the index position (Done)
+//Add element to the index position (Done)---------------------------------------------------------
 template<class T>
 void FragmentLinkedList<T>::add(int index, const T& element)
 {
@@ -298,16 +333,22 @@ void FragmentLinkedList<T>::add(int index, const T& element)
         this->count++;
     } else
     {
-        Node *p = this->fragmentPointers[0];
+        Node *p = this->fragmentPointers[0], *t;
         int i = 0;
+
         while(i < index) {p = p->next; i++;}
-        Node *t = new Node(element, p, p->prev);
+        t = new Node(element, p, p->prev);
         p->prev->next = t;
         p->prev = t;
+
         this->count++;
     }
+
+    fragmentRebuild(1, index);
 }
 
+
+//To string (Done)---------------------------------------------------------
 template <class T>
 string FragmentLinkedList<T>::toString()
 {
@@ -332,6 +373,75 @@ string FragmentLinkedList<T>::toString()
     return ss.str();
 }
 
+//Fragment Rebuild (Done)---------------------------------------------------------
+//add_rem: 0 is remove, 1 is add.
+template<class T>
+void FragmentLinkedList<T>::fragmentRebuild(bool add_rem, const int &index)
+{
+    bool tf = false;
+
+    /*If we add an element when out of range, the last element will always be marked.
+    We have to rebuild the Fragment list (increase its size by 1). */
+    if (count / fragmentMaxSize >= fragmentCount && count % fragmentMaxSize != 0)
+    {
+        tf = true;
+        Node **t = this->fragmentPointers;
+        this->fragmentCount++;
+        this->fragmentPointers = new Node *[fragmentCount];
+
+        for (int i = 0; i < fragmentCount - 1; i++)
+        {
+            this->fragmentPointers[i] = t[i];
+        }
+
+        Node *p = this->fragmentPointers[fragmentCount - 2];
+        while (p->next) p = p->next;
+        this->fragmentPointers[fragmentCount - 1] = p;
+
+        delete [] t;
+    }
+
+    /*If we remove the last element which is also marked by the last Fragment Pointer,
+    we must decrease the Fragment Count */
+    if (!add_rem && count % fragmentMaxSize == 0)
+    {
+        delete fragmentPointers[fragmentCount - 1];
+        this->fragmentCount--;
+    }
+
+    /* Elements in the last Fragment, element marked by the last Fragment Pointer
+    excluded, are not significant. */
+    if (index / fragmentMaxSize == fragmentCount - 1 && index % fragmentMaxSize != 0 + tf) return;
+
+    /* If an element is not from the cases above, we just need to move the Fragment
+    Pointers from the index to the last by 1 depends on it is added (move backward)
+    or removed (move forward). */
+    int i = index / fragmentMaxSize + (index % fragmentMaxSize != 0), lim = fragmentCount - 1 - tf;
+    while (i <= lim)
+    {
+        if (add_rem) fragmentPointers[i] = fragmentPointers[i]->prev;
+        else fragmentPointers[i] = fragmentPointers[i]->next;
+        i++;
+    }
+}
+
+//Fragment check (Done)---------------------------------------------------------
+template<class T>
+string FragmentLinkedList<T>::fragmentCheck()
+{
+    stringstream ss;
+
+    ss << "[ ";
+    for(int i = 0; i < fragmentCount; i++)
+    {
+        if (indexOf(fragmentPointers[i]->data) == i * fragmentMaxSize)
+            ss << fragmentPointers[i]->data << " ";
+        else return "FALSE";
+    }
+    ss << "]   --True--";
+    return ss.str();
+}
+
 #endif
 // END: STUDENT ANSWER
 
@@ -339,30 +449,45 @@ int main()
 {
     // TESTCASE INPUT
     // === Example
-    FragmentLinkedList<int> fList;
-    for(int i = 0; i < 10 ; i++)
+    int a = 5, n = 16;
+    FragmentLinkedList<int> fList(a);
+    for(int i = 0; i < n ; i++)
     {
         fList.add(i*i);
     }
-    cout << fList.toString();
-    cout << endl;
+    cout << "- Add i*i to list (i from 0 to " << n - 1 << "): " << endl;
+    cout << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl << fList.fragmentCheck() << endl << endl;
+
     fList.add(4, 7);
-    cout << fList.toString();
-    cout << endl;
-    cout << fList.removeAt(4) << endl;
-    cout << fList.toString();
-    cout << endl;
-    cout << fList.removeAt(fList.size() - 1) << endl;
-    cout << fList.toString();
-    cout << endl;
-    cout << fList.size() << endl;
-    fList.removeItem(5);
-    cout << fList.toString();
-    cout << endl;
-    cout << fList.size() << endl;
-    cout << fList.indexOf(6) << ' ' << fList.indexOf(10) << ' ' << fList.contains(6) << ' ' << fList.contains(10);
+    cout << "- Add 7 to index 4:" << endl << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl << fList.fragmentCheck() << endl << endl;
+
+    cout << "- Remove item 4, return: " << fList.removeAt(4) << endl;
+    cout << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl << fList.fragmentCheck() << endl << endl;
+
+    cout << "- Remove item last, return: " << fList.removeAt(fList.size() - 1)  << endl;
+    cout << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl << fList.fragmentCheck() << endl << endl;
+
+    cout << "- Remove item 5, return: " << fList.removeAt(5) << endl;
+    cout << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl << fList.fragmentCheck() << endl << endl;
+
+    fList.set(4, 69);
+    cout << "- Set index 4 to 69:" << endl << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl << fList.fragmentCheck() << endl << endl;
+
+    cout << "- Check index 6: " << fList.indexOf(6) << endl << endl;
+    cout << "- Check index 10: " << fList.indexOf(10) << endl << endl;
+    cout << "- Check item with value of 6: " << fList.contains(6) << endl << endl;
+    cout << "- Check item with value of 64: " << fList.contains(64) << endl << endl;
+    cout << "- Get value of index 5: " << fList.get(5) << endl << endl;
+
     fList.clear();
-    cout << fList.toString();
+    cout << "Check clear:  " << fList.toString() << endl << endl;
+
 
     // for(FragmentLinkedList<int>::Iterator it = fList.begin(); it != fList.end(); it++)
     //     cout << *it << " ";
