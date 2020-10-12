@@ -233,7 +233,7 @@ bool FragmentLinkedList<T>::contains(const T& item)
 template <class T>
 T FragmentLinkedList<T>::removeAt(int index)
 {
-    Node *p = this->fragmentPointers[0];
+    Node *p = this->fragmentPointers[index / fragmentMaxSize];
 
     if (index >= count || index < 0 || empty()) throw out_of_range("This index is out of range!");
 
@@ -247,7 +247,7 @@ T FragmentLinkedList<T>::removeAt(int index)
         return t;
     }
 
-    int i = 0;
+    int i = index / fragmentMaxSize * fragmentMaxSize;
 
     while(i < index) {p = p->next; i++;}
     if (i == count - 1) p->prev->next = DummyNode;
@@ -340,8 +340,8 @@ void FragmentLinkedList<T>::add(int index, const T& element)
         this->count++;
     } else
     {
-        Node *p = this->fragmentPointers[0], *t;
-        int i = 0;
+        int i = index / fragmentMaxSize * fragmentMaxSize;
+        Node *p = this->fragmentPointers[index / fragmentMaxSize], *t;
 
         while(i < index) {p = p->next; i++;}
         t = new Node(element, p, p->prev);
@@ -449,19 +449,6 @@ string FragmentLinkedList<T>::fragmentCheck()
     return ss.str();
 }
 
-/*
-
-Iterator(FragmentLinkedList<T> *pList = 0, bool begin = true);
-Iterator(FragmentLinkedList<T> *pList = 0, int fragmentIndex = 0, bool begin = true);
-Iterator &operator=(const Iterator &iterator);
-T &operator*();
-bool operator!=(const Iterator &iterator);
-void remove();
-void set(const T& element);
-Iterator &operator++();
-Iterator operator++(int);
-
-*/
 
 //Iterator---------------------------------------/****/------------------------------------------------
 //Constructor  --------------------------------------------------------------------------------
@@ -487,7 +474,7 @@ FragmentLinkedList<T>::Iterator::Iterator(FragmentLinkedList<T> *pList, int frag
     }
 }
 
-//Begin  -------------------------------------------------------------------------------
+//Begin (Done)-------------------------------------------------------------------------------
 template <typename T>
 typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::begin(int index)
 {
@@ -495,7 +482,7 @@ typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::begin(int index)
     return Iterator(this, index, true);
 }
 
-//End  ------------------------------------------------------------------------------
+//End (Done)------------------------------------------------------------------------------
 template <typename T>
 typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::end(int index)
 {
@@ -503,7 +490,7 @@ typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::end(int index)
     return Iterator(this, index, false);
 }
 
-//Assign operator  ----------------------------------------------------------------------
+//Copy operator (Done)----------------------------------------------------------------------
 template <class T>
 typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::operator=(const Iterator &iterator)
 {
@@ -512,7 +499,7 @@ typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::opera
     return *this;
 }
 
-//Postfix operator  -----------------------------------------------------------------------
+//Postfix operator (Done)-----------------------------------------------------------------------
 template <typename T>
 typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::operator++()
 {
@@ -603,13 +590,23 @@ int main()
 
     using iterator = FragmentLinkedList<int>::Iterator;
 
-    cout << "Iterator checking: " << endl << "[ ";
+    cout << "Original list:     " << fList.toString() << endl;
+    cout << "Iterator checking: " << "[";
+    string x = ", ";
     for (iterator i = fList.begin(); i != fList.end(); i++)
         {
-            if (*i == fList.get(fList.size() - 1)) i.set(96);
-            cout << *i << ' ';
+            if (*i == fList.get(fList.size() - 1))
+            {
+                i.set(96);
+                x = "";
+            }
+            cout << *i << x;
         }
     cout << "]" << endl << endl;
+
+    iterator it = fList.begin();
+    cout << "Prefix checking: " << *(++it) << " = ";
+    cout << *it << endl << endl;
 
     // for(FragmentLinkedList<int>::Iterator it = fList.begin(); it != fList.end(); it++)
     //     cout << *it << " ";
