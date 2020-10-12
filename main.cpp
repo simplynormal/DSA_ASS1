@@ -507,7 +507,11 @@ typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::opera
 {
 
     if (!Head) this->pNode = this->pNode->next;
-        else this->pNode = pList->fragmentPointers[0];
+    else
+    {
+        this->pNode = pList->fragmentPointers[0];
+        Head = false;
+    }
     return *this;
 }
 
@@ -518,7 +522,11 @@ typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::Iterator::operat
     Iterator tmp(pList, true);
     tmp.pNode = this->pNode;
     if (!Head) this->pNode = this->pNode->next;
-        else this->pNode = pList->fragmentPointers[0];
+    else
+    {
+        this->pNode = pList->fragmentPointers[0];
+        Head = false;
+    }
     return tmp;
 }
 
@@ -540,6 +548,14 @@ bool FragmentLinkedList<T>::Iterator::operator!=(const Iterator &iterator)
 template <typename T>
 void FragmentLinkedList<T>::Iterator::remove()
 {
+    /* Problem M
+       If an iterator is defined as an begin iterator, there is no guarantee
+    that iterator is still pointing to the first node (we can add an element to
+    the list after the iterator is defined). We have to update the index of the
+    node pointed by the iterator to consider if it is the first node or not.
+       If the iterator does point to the first node, var Head will be 1.
+    */
+
     Node *p = pList->fragmentPointers[0];
     int i = 0;
 
@@ -625,10 +641,22 @@ int main()
     it = fList.begin();
     it.remove();
     it++;
-    cout << "Original List: " << endl << fList.toString() << endl;
+    cout << "List after modified: " << endl << fList.toString() << endl;
     cout << "Remove & Increase the first node checking: " << *it;
     if (*it == fList.get(0)) cout << "   --TRUE--"; else cout << "  --FALSE--";
     cout << endl << endl;
+
+
+    //Problem M
+    it = fList.begin();
+    fList.add(0, 69);
+    it.remove();
+    it++;
+    cout << "List after modified: " << endl << fList.toString() << endl;
+    cout << "Remove & Increase the first iterator points node checking: " << *it;
+    if (*it == fList.get(0)) cout << "   --TRUE--"; else cout << "  --FALSE--";
+    cout << endl << endl;
+
 
     // for(FragmentLinkedList<int>::Iterator it = fList.begin(); it != fList.end(); it++)
     //     cout << *it << " ";
