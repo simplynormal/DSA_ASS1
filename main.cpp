@@ -18,7 +18,7 @@ public:
     virtual bool empty() = 0;
     virtual int size() = 0;
     virtual void clear() = 0;
-    virtual T& get(int index) = 0;
+    virtual T get(int index) = 0;
     virtual void set(int index, const T& element) = 0;
     virtual int indexOf(const T& item) = 0;
     virtual bool contains(const T& item) = 0;
@@ -64,7 +64,7 @@ public:
     virtual bool empty();
     virtual int size();
     virtual void clear();
-    virtual T& get(int index);
+    virtual T get(int index);
     virtual void set(int index, const T& element);
     virtual int indexOf(const T& item);
     virtual bool contains(const T& item);
@@ -108,6 +108,7 @@ public:
     private:
         FragmentLinkedList<T> *pList;
         Node *pNode;
+        int Head;
 
     public:
         Iterator(FragmentLinkedList<T> *pList = 0, bool begin = true);
@@ -159,7 +160,7 @@ int FragmentLinkedList<T>::size()
 
 //Get (Done)---------------------------------------------------------
 template <class T>
-T& FragmentLinkedList<T>::get(int index)
+T FragmentLinkedList<T>::get(int index)
 {
     if (index >= count || index < 0 || empty()) throw out_of_range("This index is out of range!");
 
@@ -451,27 +452,27 @@ string FragmentLinkedList<T>::fragmentCheck()
 
 
 //Iterator---------------------------------------/****/------------------------------------------------
-//Constructor  --------------------------------------------------------------------------------
+//Constructor (Done)--------------------------------------------------------------------------------
 template <typename T>
 FragmentLinkedList<T>::Iterator::Iterator(FragmentLinkedList<T> *pList, bool begin)
+    : pList(pList)
 {
-    this->pList = pList;
-
     if (begin) pNode = pList->fragmentPointers[0];
-    else pNode = pList->DummyNode;
+        else pNode = pList->DummyNode;
+    this->Head = false;
 }
 
 template <typename T>
 FragmentLinkedList<T>::Iterator::Iterator(FragmentLinkedList<T> *pList, int fragmentIndex, bool begin)
+    : pList(pList)
 {
-    this->pList = pList;
-
     if (begin) pNode = pList->fragmentPointers[fragmentIndex];
     else
     {
-        if (pList->fragmentCount > fragmentIndex + 1) pNode = pList->fragmentPointers[fragmentIndex + 1]; else
-            pNode = pList->DummyNode;
+        if (pList->fragmentCount > fragmentIndex + 1) pNode = pList->fragmentPointers[fragmentIndex + 1];
+            else pNode = pList->DummyNode;
     }
+    this->Head = false;
 }
 
 //Begin (Done)-------------------------------------------------------------------------------
@@ -496,23 +497,28 @@ typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::opera
 {
     this->pNode = iterator.pNode;
     this->pList = iterator.pList;
+    this->Head = iterator.Head;
     return *this;
 }
 
-//Postfix operator (Done)-----------------------------------------------------------------------
+//Prefix operator (Done)-----------------------------------------------------------------------
 template <typename T>
 typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::operator++()
 {
-    this->pNode = this->pNode->next;
+
+    if (!Head) this->pNode = this->pNode->next;
+        else this->pNode = pList->fragmentPointers[0];
     return *this;
 }
 
-//Prefix operator  -----------------------------------------------------------------------
+//Postfix operator  -----------------------------------------------------------------------
 template <typename T>
 typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::Iterator::operator++(int)
 {
     Iterator tmp(pList, true);
-    this->pNode = this->pNode->next;
+    tmp.pNode = this->pNode;
+    if (!Head) this->pNode = this->pNode->next;
+        else this->pNode = pList->fragmentPointers[0];
     return tmp;
 }
 
@@ -520,7 +526,7 @@ typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::Iterator::operat
 template <typename T>
 T& FragmentLinkedList<T>::Iterator::operator*()
 {
-    return this->pNode->data;
+    return pNode->data;
 }
 
 //Check equality operator  -----------------------------------------------------------------------
@@ -534,7 +540,13 @@ bool FragmentLinkedList<T>::Iterator::operator!=(const Iterator &iterator)
 template <typename T>
 void FragmentLinkedList<T>::Iterator::remove()
 {
+    Node *p = pList->fragmentPointers[0];
+    int i = 0;
 
+    while (p != pNode) {p = p->next; i++;}
+    if (i == 0) this->Head = true;
+    this->pNode = this->pNode->prev;
+    pList->removeAt(i);
 }
 
 //Set  -----------------------------------------------------------------------
@@ -543,6 +555,7 @@ void FragmentLinkedList<T>::Iterator::set(const T& element)
 {
     this->pNode->data = element;
 }
+
 
 #endif
 // END: STUDENT ANSWER
@@ -604,9 +617,18 @@ int main()
         }
     cout << "]" << endl << endl;
 
+
     iterator it = fList.begin();
-    cout << "Prefix checking: " << *(++it) << " = ";
+    cout << "Prefix checking: " << *(it++) << " = ";
     cout << *it << endl << endl;
+
+    it = fList.begin();
+    it.remove();
+    it++;
+    cout << "Original List: " << endl << fList.toString() << endl;
+    cout << "Remove & Increase the first node checking: " << *it;
+    if (*it == fList.get(0)) cout << "   --TRUE--"; else cout << "  --FALSE--";
+    cout << endl << endl;
 
     // for(FragmentLinkedList<int>::Iterator it = fList.begin(); it != fList.end(); it++)
     //     cout << *it << " ";
