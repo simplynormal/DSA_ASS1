@@ -241,6 +241,7 @@ T FragmentLinkedList<T>::removeAt(int index)
     if (index == 0)
     {
         this->fragmentPointers[0] = p->next;
+        this->fragmentPointers[0]->prev = nullptr;
         this->count--;
 
         T t = p->data;
@@ -285,6 +286,7 @@ bool FragmentLinkedList<T>::removeItem(const T& item)
         if (index == 0)
         {
             this->fragmentPointers[0] = p->next;
+            this->fragmentPointers[0]->prev = nullptr;
             this->count--;
             delete p;
             return true;
@@ -335,18 +337,15 @@ void FragmentLinkedList<T>::add(const T& element)
 template <class T>
 void FragmentLinkedList<T>::add(int index, const T& element)
 {
-    if (index >= this->count)
-    {
-        add(element);
-        this->count++;
-    } else
+    if (index >= this->count) add(element);
+    else
     {
         int i = index / fragmentMaxSize * fragmentMaxSize;
         Node *p = this->fragmentPointers[index / fragmentMaxSize], *t;
 
         while(i < index) {p = p->next; i++;}
         t = new Node(element, p, p->prev);
-        p->prev->next = t;
+        if (i != 0) p->prev->next = t;
         p->prev = t;
 
         this->count++;
@@ -354,7 +353,6 @@ void FragmentLinkedList<T>::add(int index, const T& element)
 
     fragmentRebuild(1, index);
 }
-
 
 //To string (Done)---------------------------------------------------------
 template <class T>
@@ -648,15 +646,24 @@ int main()
 
 
     //Problem M
+    cout << "- Problem M" << endl;
     it = fList.begin();
     fList.add(0, 69);
     it.remove();
     it++;
     cout << "List after modified: " << endl << fList.toString() << endl;
-    cout << "Remove & Increase the first iterator points node checking: " << *it;
-    if (*it == fList.get(0)) cout << "   --TRUE--"; else cout << "  --FALSE--";
+    cout << "Remove & Increase the first iterator points to the first node which later does not checking: " << *it;
     cout << endl << endl;
 
+    //Problem M
+    cout << "- Repeat again Problem M" << endl;
+    it = fList.begin();
+    fList.add(0, 6969);
+    it.remove();
+    it++;
+    cout << "List after modified: " << endl << fList.toString() << endl;
+    cout << "Remove & Increase the first iterator points to the first node which later does not checking: " << *it;
+    cout << endl << endl;
 
     // for(FragmentLinkedList<int>::Iterator it = fList.begin(); it != fList.end(); it++)
     //     cout << *it << " ";
