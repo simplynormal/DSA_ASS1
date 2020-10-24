@@ -131,7 +131,7 @@ FragmentLinkedList<T>::~FragmentLinkedList()
         return;
 
     this->count = 0;
-    this->fragmentCount = 1;
+    this->fragmentCount = 0;
 
     Node *p = this->fragmentPointers[0], *tmp;
 
@@ -229,19 +229,7 @@ int FragmentLinkedList<T>::indexOf(const T &item)
 template <class T>
 bool FragmentLinkedList<T>::contains(const T &item)
 {
-    Node *p = this->fragmentPointers[0];
-    int index = 0;
-
-    while (index < count)
-        if (p->data != item)
-        {
-            p = p->next;
-            index++;
-        }
-        else
-            break;
-
-    if (index < count)
+    if (indexOf(item) != -1)
         return true;
     else
         return false;
@@ -256,17 +244,6 @@ T FragmentLinkedList<T>::removeAt(int index)
     if (index >= count || index < 0 || empty())
         throw out_of_range("This index is out of range!");
 
-    if (index == 0)
-    {
-        this->fragmentPointers[0] = p->next;
-        this->fragmentPointers[0]->prev = nullptr;
-        this->count--;
-
-        T t = p->data;
-        delete p;
-        return t;
-    }
-
     int i = index / fragmentMaxSize * fragmentMaxSize;
 
     while (i < index)
@@ -274,17 +251,26 @@ T FragmentLinkedList<T>::removeAt(int index)
         p = p->next;
         i++;
     }
+
     if (i == count - 1)
         p->prev->next = DummyNode;
     else
     {
-        p->prev->next = p->next;
-        p->next->prev = p->prev;
+        if (i == 0)
+            p->next->prev = nullptr;
+        else
+        {
+            p->prev->next = p->next;
+            p->next->prev = p->prev;
+        }
     }
+
     T t = p->data;
     this->count--;
 
     fragmentRebuild(0, index);
+    if (fragmentCount == 0)
+        delete DummyNode;
 
     delete p;
     return t;
@@ -328,6 +314,8 @@ bool FragmentLinkedList<T>::removeItem(const T &item)
         this->count--;
         fragmentRebuild(0, index);
 
+        if (fragmentCount == 0)
+            delete DummyNode;
         return true;
     }
     else
@@ -341,8 +329,7 @@ void FragmentLinkedList<T>::add(const T &element)
 
     if (empty())
     {
-        if (!DummyNode)
-            this->DummyNode = new Node(-1, nullptr, nullptr);
+        this->DummyNode = new Node(-1, nullptr, nullptr);
         this->fragmentPointers[0] = new Node(element, DummyNode, nullptr);
         DummyNode->prev = this->fragmentPointers[0];
 
@@ -425,6 +412,7 @@ string FragmentLinkedList<T>::toString()
 template <class T>
 void FragmentLinkedList<T>::fragmentRebuild(bool add_rem, const int &index)
 {
+
     bool tf = false;
 
     /*If we add an element when out of range, the last element will always be marked.
@@ -480,6 +468,9 @@ void FragmentLinkedList<T>::fragmentRebuild(bool add_rem, const int &index)
 template <class T>
 string FragmentLinkedList<T>::fragmentCheck()
 {
+    if (empty())
+        return "EMPTY!";
+
     stringstream ss;
 
     ss << "[ ";
@@ -488,7 +479,7 @@ string FragmentLinkedList<T>::fragmentCheck()
         if (indexOf(fragmentPointers[i]->data) == i * fragmentMaxSize)
             ss << fragmentPointers[i]->data << " ";
         else
-            return "FALSE";
+            return "--FALSE--";
     }
     ss << "]   --True--";
     return ss.str();
@@ -555,6 +546,9 @@ typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::opera
 template <typename T>
 typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::operator++()
 {
+    //Increase the last element will return DummyNode, increase DummyNode will return itself
+    if (this->pNode == this->pList->DummyNode)
+        return *this;
 
     if (!Head)
         this->pNode = this->pNode->next;
@@ -570,6 +564,10 @@ typename FragmentLinkedList<T>::Iterator &FragmentLinkedList<T>::Iterator::opera
 template <typename T>
 typename FragmentLinkedList<T>::Iterator FragmentLinkedList<T>::Iterator::operator++(int)
 {
+    //Increase the last element will return DummyNode, increase DummyNode will return itself
+    if (this->pNode == this->pList->DummyNode)
+        return *this;
+
     Iterator tmp(pList, true);
     tmp.pNode = this->pNode;
     if (!Head)
@@ -655,13 +653,26 @@ int main()
          << fList.fragmentCheck() << endl
          << endl;
 
+    cout << "- Remove first item, return: " << fList.removeAt(0) << endl;
+    cout << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl
+         << fList.fragmentCheck() << endl
+         << endl;
+
+    fList.add(0, 0);
+    cout << "- Add 0 to index 0:" << endl
+         << fList.toString() << endl;
+    cout << "Check fragment list with Fragment max size of " << a << ":" << endl
+         << fList.fragmentCheck() << endl
+         << endl;
+
     cout << "- Remove item 4, return: " << fList.removeAt(4) << endl;
     cout << fList.toString() << endl;
     cout << "Check fragment list with Fragment max size of " << a << ":" << endl
          << fList.fragmentCheck() << endl
          << endl;
 
-    cout << "- Remove item last, return: " << fList.removeAt(fList.size() - 1) << endl;
+    cout << "- Remove last item, return: " << fList.removeAt(fList.size() - 1) << endl;
     cout << fList.toString() << endl;
     cout << "Check fragment list with Fragment max size of " << a << ":" << endl
          << fList.fragmentCheck() << endl
@@ -680,13 +691,13 @@ int main()
          << fList.fragmentCheck() << endl
          << endl;
 
-    cout << "- Check index 6: " << fList.indexOf(6) << endl
+    cout << "- Check index of item with value of 6: " << fList.indexOf(6) << endl
          << endl;
-    cout << "- Check index 10: " << fList.indexOf(10) << endl
+    cout << "- Check index of item with value of 64: " << fList.indexOf(64) << endl
          << endl;
-    cout << "- Check item with value of 6: " << fList.contains(6) << endl
+    cout << "- Check presence of item with value of 6: " << fList.contains(6) << endl
          << endl;
-    cout << "- Check item with value of 64: " << fList.contains(64) << endl
+    cout << "- Check presence of item with value of 64: " << fList.contains(64) << endl
          << endl;
     cout << "- Get value of index 5: " << fList.get(3) << endl
          << endl;
@@ -709,8 +720,15 @@ int main()
     cout << "]" << endl
          << endl;
 
+    //Prefix
     iterator it = fList.begin();
-    cout << "Prefix checking: " << *(it++) << " = ";
+    cout << "Prefix checking: " << *(it++) << " != ";
+    cout << *it << endl
+         << endl;
+
+    //Postfix
+    it = fList.begin();
+    cout << "Post checking: " << *(++it) << " = ";
     cout << *it << endl
          << endl;
 
@@ -739,7 +757,7 @@ int main()
     cout << endl
          << endl;
 
-    //Problem M
+    //Problem M - Repeat (Some methods may have errors when repeating this problem)
     cout << "- Repeat again Problem M" << endl;
     it = fList.begin();
     fList.add(0, 6969);
@@ -751,14 +769,16 @@ int main()
     cout << endl
          << endl;
 
-    // for(FragmentLinkedList<int>::Iterator it = fList.begin(); it != fList.end(); it++)
-    //     cout << *it << " ";
-    // cout << endl;
-    // === END: Example
-    // END: TESTCASE INPUT
+    //Increase iterator pointing at the end of the list
+    it = fList.end();
+    it++;
+    cout << "Increase iterator pointing at the end of the list: " << *it << endl
+         << endl;
 
+    //Clear checking
     fList.clear();
     cout << "Check clear:  " << fList.toString() << endl
+         << fList.fragmentCheck() << endl
          << endl;
 
     return 0;
