@@ -108,7 +108,7 @@ public:
     private:
         FragmentLinkedList<T> *pList;
         Node *pNode;
-        int Head;
+        bool Head;
 
     public:
         Iterator(FragmentLinkedList<T> *pList = 0, bool begin = true);
